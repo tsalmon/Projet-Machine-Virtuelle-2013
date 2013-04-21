@@ -65,11 +65,11 @@ let step s =
     | Makeblock(t, n) -> copy_stat s.code (s.pc+1) (Ptr(Block(t, (bloc s.stack n (Array.make (n+1) (Int(0))))))) (depop s.stack n)
     | Getblock(n) ->  copy_stat s.code (s.pc+1) (Stk.peek s.stack n) s.stack
     | Closure(n, o) -> 
-      let tab = Array.make 1 s.code.(o) in
+      let tab = Array.make 1 (Int (o+s.pc)) in
       let close = closure s.stack n tab in  
       copy_stat s.code (s.pc+1) (Ptr(Block(88, close))) (depop s.stack n)
     | Branchif(l) -> 
-      if(s.acc = 0) then 
+      if(gI(s.acc) = 0) then 
 	copy_stat s.code (s.pc+l) s.acc s.stack 
       else 
 	copy_stat s.code (s.pc+1) s.acc s.stack
@@ -77,7 +77,6 @@ let step s =
       
       
 let exec ?(trace=false) s =
-  print_string("Machine.exec\n");
   let rec star s =
     if trace then Printer.print (Printer.state s);
     try star (step s) with Finished -> ()
