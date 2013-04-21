@@ -2,48 +2,80 @@ open Instr
 
 exception Finished
 
-
 let soi i = string_of_int(i)
+(* getters *)
 let gI = function
   | Int(i) -> i
   | _ -> failwith "get integer fail"
 let gS = function
-  | Str(s) -> s
+  | Ptr(String s) -> s
   | _ -> failwith "get string fail"
+let gH s = 
+  let (a,b) = Stk.pop s
+  in b
 
 let binop_step b a s = match b with 
   | Add -> Int(gI(a) + gI(s))
   | Sub -> Int(gI(a) - gI(s))
   | Mul -> Int(gI(a) * gI(s))
   | Div -> let x = gI(s) in 
-	   if(x > 0) then Int(a / x) 
+	   if(x > 0) then Int(gI(a) / x) 
 	   else failwith "division par zero"
   | Eqi -> if(a = s) then Int(1) else Int(0)
-  | Cat -> Str(gS(a) ^ gS(s))
+  | Cat -> Ptr(String ((gS a) ^ (gS s)))
     
 let print_acc = function
   | Int(i) -> print_int(i)
-  | String(s) -> print_string(s)
+  | Ptr(String s) -> print_string(s)
+  | _ -> failwith "print_acc ne sait pas comment lire"
 
-let step s = 
-  begin
-    match s.stack.(s.pc) with
-      | Halt -> raise Finished 
-      | Binop(b) -> binop_step b s.acc s.stack.(s.pc)
-      | Const(i) -> s.acc <- Int(i) 
-      | Str(s) -> s.acc <- Str(s)
-      | Push -> s.stack <- Stk.push s.stack s.acc
-      | Acc(i) -> s.acc <- Stk.peek s.stack i
-      | Print -> print_acc s.acc
-      | Apply -> m.pc <- m.pc 
-      | Return(i) -> 
-      | Pop(i) -> 
-      | Makeblock(i1, i2) ->
-      | Getblock(i) ->
-      | Closure(i,l) ->
-      | Branchif(l) -> 
-      | Branch(l) -> 
-  end; m.pc <- m.pc + 1; m
+let rec depop l i = if(i > 0 ) then let (a,b) = Stk.pop l in depop a (i-1)  else l    
+
+let rec recup l i r = 
+  if(i > 0 ) then 
+    let (a,b) = Stk.pop l 
+    in recup a (i-1) (Stk.push r b) 
+  else r   
+let copy_stat c p a s = {code = c; pc = p; acc = a; stack = s}
+
+let rec bloc l i r=  
+  if(i > 0 ) then 
+    let (a,b) = Stk.pop l 
+    in bloc a (i-1) ([|b|]) 
+  else r   
+
+let rec closure l i tab =
+  if(i > 0 ) then 
+    let (a,b) = Stk.pop l 
+    in bloc a (i-1) (Array.append tab [|b|]) 
+  else tab
+
+let step s =
+  match s.code.(s.pc) with
+    | Halt -> raise Finished 
+    | Binop(b) -> copy_stat s.code (s.pc+1) (binop_step b s.acc (gH s.stack)) s.stack
+    | Const(i) -> copy_stat s.code (s.pc+1) (Int(i)) s.stack
+    | Str(st) -> copy_stat s.code (s.pc+1) (Ptr(String st)) s.stack
+    | Push -> copy_stat s.code (s.pc+1) (s.acc) (Stk.push s.stack s.acc)
+    | Acc(i) -> copy_stat s.code (s.pc+1) (Stk.peek s.stack i) (s.stack)
+    | Print -> print_acc s.acc; copy_stat s.code (s.pc+1) s.acc s.stack
+    | Apply -> copy_stat s.code (s.pc+gI(s.acc)) (s.acc) s.stack
+    | Return(i) -> copy_stat s.code (s.pc+1) s.acc (depop s.stack i)
+    | Pop(i) -> copy_stat s.code (s.pc+1) s.acc (depop s.stack i)
+    | Makeblock(t, n) -> copy_stat s.code (s.pc+1) (Ptr(Block(t, (bloc s.stack n (Array.make (n+1) (Int(0))))))) (depop s.stack n)
+    | Getblock(n) ->  copy_stat s.code (s.pc+1) (Stk.peek s.stack n) s.stack
+    | Closure(n, o) -> 
+      let tab = Array.make 1 s.code.(o) in
+      let close = closure s.stack n tab in  
+      copy_stat s.code (s.pc+1) (Ptr(Block(88, close))) (depop s.stack n)
+    | Branchif(l) -> 
+      if(s.acc = 0) then 
+	copy_stat s.code (s.pc+l) s.acc s.stack 
+      else 
+	copy_stat s.code (s.pc+1) s.acc s.stack
+    | Branch(l) -> copy_stat s.code (s.pc+l) s.acc s.stack
+      
+      
 let exec ?(trace=false) s =
   print_string("Machine.exec\n");
   let rec star s =
@@ -52,10 +84,10 @@ let exec ?(trace=false) s =
   in star s 
 
 
-let init c = print_string(print_asm c 0 );
+let init c = (*print_string(print_asm c 0 );*)
   {code =  c;
-   pc = 0;
-   acc = Int(0);
+    pc = 0;
+    acc = Int(0);
    stack = Stk.empty
   } (*failwith "(machine.init)Students, this is your job."*)
 
