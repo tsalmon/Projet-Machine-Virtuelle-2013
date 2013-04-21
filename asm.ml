@@ -110,20 +110,19 @@ let desassemble_operateur = function
 
 let disassemble s =
   let rec aux k p = 
-    print_string(string_of_int(Char.code s.[k]) ^ "\n");
     if(k+1 < String.length s) then
       match Char.code s.[k] with
 	| 0  -> aux (k+1) (Halt::p)
 	| 1  -> aux (k+1) (Push::p)  
 	| 2  -> aux (k+1) (Print::p)   
 	| 3  -> aux (k+1) (Apply::p)
-	| 4  -> aux (k+4) ((Acc (refactory (String.sub s (k+1) 4)))::p)
-	| 5  -> aux (k+4) ((Const (refactory (String.sub s (k+1) 4)))::p)
-	| 6  -> aux (k+4) ((Return (refactory (String.sub s (k+1) 4)))::p)
-	| 7  -> aux (k+4) ((Pop (refactory (String.sub s (k+1) 4)))::p)
-	| 8  -> aux (k+4) ((Branchif (refactory (String.sub s (k+1) 4)))::p)
-	| 9  -> aux (k+4) ((Branch (refactory (String.sub s (k+1) 4)))::p)
-	| 10 -> aux (k+4) ((Getblock (refactory (String.sub s (k+1) 4)))::p)
+	| 4  -> aux (k+5) ((Acc (refactory (String.sub s (k+1) 4)))::p)
+	| 5  -> aux (k+5) ((Const (refactory (String.sub s (k+1) 4)))::p)
+	| 6  -> aux (k+5) ((Return (refactory (String.sub s (k+1) 4)))::p)
+	| 7  -> aux (k+5) ((Pop (refactory (String.sub s (k+1) 4)))::p)
+	| 8  -> aux (k+5) ((Branchif (refactory (String.sub s (k+1) 4)))::p)
+	| 9  -> aux (k+5) ((Branch (refactory (String.sub s (k+1) 4)))::p)
+	| 10 -> aux (k+5) ((Getblock (refactory (String.sub s (k+1) 4)))::p)
 	| 11 -> aux (k+9) ((Makeblock (refactory (String.sub s (k+1) 4), refactory (String.sub s (k+5) 4)))::p)
 	| 12 -> aux (k+9) ((Closure(refactory (String.sub s (k+1) 4), refactory (String.sub s (k+5) 4)))::p)
 	| 13 -> aux (k+2) ((desassemble_operateur (Char.code s.[k+1]))::p)
