@@ -51,6 +51,44 @@ let refactory s =
     Char.code s.[0] + (Char.code s.[1] lsl 8) + (Char.code s.[2] lsl 16)+ (Char.code s.[3] lsl 24)
 
 (* disassembles the given bytecode *)
+
+let desassemble_operateur = function
+  | 0 -> Binop(Add)
+  | 1 -> Binop(Sub)
+  | 2 -> Binop(Mul)
+  | 3 -> Binop(Div)
+  | 4 -> Binop(Eqi)
+  | 5 -> Binop(Cat)
+  | _ -> failwith "(asm.d 1) invalide bytecode"
+
+let disassemble s =
+  let rec aux k p = 
+    if(k+1 < String.length s) then
+      let code = Char.code s.[k] in
+      let n1 = if(code > 3) then refactory (String.sub s (k+1) 4) else 0 in
+      let n2 = if(code == 11 || code == 12) then refactory (String.sub s (k+5) 4) else 0 in
+      match Char.code s.[k] with
+	| 0  -> aux (k+1) (Halt::p)
+	| 1  -> aux (k+1) (Push::p)  
+	| 2  -> aux (k+1) (Print::p)   
+	| 3  -> aux (k+1) (Apply::p)
+	| 4  -> aux (k+5) ((Acc n1)::p)
+	| 5  -> aux (k+5) ((Const n1)::p)
+	| 6  -> aux (k+5) ((Return n1)::p)
+	| 7  -> aux (k+5) ((Pop n1)::p)
+	| 8  -> aux (k+5) ((Branchif n1)::p)
+	| 9  -> aux (k+5) ((Branch n1)::p)
+	| 10 -> aux (k+5) ((Getblock n1)::p)
+	| 11 -> aux (k+9) ((Makeblock (n1, n2))::p)
+	| 12 -> aux (k+9) ((Closure (n1, n2))::p)
+	| 13 -> aux (k+2) ((desassemble_operateur (Char.code s.[k+1]))::p)
+	| 14 -> aux (k+1+(refactory (String.sub s (k+1) 4))) ((Str("str a faire"))::p)
+	| _  -> print_string(string_of_int(k) ^ "/" ^ string_of_int(String.length s) ^ "\n") ; failwith "(asm.d 2)invalide bytecode";
+    else 
+      p
+  in Array.of_list(List.rev(aux 0 []))
+
+
 (*
 let disassemble s =
   let p = Array.make (String.length s) Push in
@@ -92,42 +130,3 @@ let disassemble s =
     i := !i + 1
   done ; p
     *)
-
-let desassemble_operateur = function
-  | 0 -> Binop(Add)
-  | 1 -> Binop(Sub)
-  | 2 -> Binop(Mul)
-  | 3 -> Binop(Div)
-  | 4 -> Binop(Eqi)
-  | 5 -> Binop(Cat)
-  | _ -> failwith "(asm.d 1) invalide bytecode"
-
-(*let rec print_asm s i =  
-  if(i < String.length s) then
-    "\\" ^ string_of_int(Char.code s.[i]) ^ print_asm s (i+1)
-  else
-    "\n"*)
-
-let disassemble s =
-  let rec aux k p = 
-    if(k+1 < String.length s) then
-      match Char.code s.[k] with
-	| 0  -> aux (k+1) (Halt::p)
-	| 1  -> aux (k+1) (Push::p)  
-	| 2  -> aux (k+1) (Print::p)   
-	| 3  -> aux (k+1) (Apply::p)
-	| 4  -> aux (k+5) ((Acc (refactory (String.sub s (k+1) 4)))::p)
-	| 5  -> aux (k+5) ((Const (refactory (String.sub s (k+1) 4)))::p)
-	| 6  -> aux (k+5) ((Return (refactory (String.sub s (k+1) 4)))::p)
-	| 7  -> aux (k+5) ((Pop (refactory (String.sub s (k+1) 4)))::p)
-	| 8  -> aux (k+5) ((Branchif (refactory (String.sub s (k+1) 4)))::p)
-	| 9  -> aux (k+5) ((Branch (refactory (String.sub s (k+1) 4)))::p)
-	| 10 -> aux (k+5) ((Getblock (refactory (String.sub s (k+1) 4)))::p)
-	| 11 -> aux (k+9) ((Makeblock (refactory (String.sub s (k+1) 4), refactory (String.sub s (k+5) 4)))::p)
-	| 12 -> aux (k+9) ((Closure(refactory (String.sub s (k+1) 4), refactory (String.sub s (k+5) 4)))::p)
-	| 13 -> aux (k+2) ((desassemble_operateur (Char.code s.[k+1]))::p)
-	| 14 -> aux (k+1+(refactory (String.sub s (k+1) 4))) ((Str("str a faire"))::p)
-	| _ -> print_string(string_of_int(k) ^ "\n") ; failwith "(asm.d 2)invalide bytecode";
-    else 
-      p
-  in Array.of_list(List.rev(aux 0 []))
