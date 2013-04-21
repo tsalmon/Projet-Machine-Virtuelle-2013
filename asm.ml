@@ -82,7 +82,7 @@ let disassemble s =
 	| 11 -> aux (k+9) ((Makeblock (n1, n2))::p)
 	| 12 -> aux (k+9) ((Closure (n1, n2))::p)
 	| 13 -> aux (k+2) ((desassemble_operateur (Char.code s.[k+1]))::p)
-	| 14 -> aux (k+1+(refactory (String.sub s (k+1) 4))) ((Str("str a faire"))::p)
+	| 14 -> aux (k + 5 + n1) ((Str(String.sub s (k+5) n1))::p)
 	| _  -> print_string(string_of_int(k) ^ "/" ^ string_of_int(String.length s) ^ "\n") ; failwith "(asm.d 2)invalide bytecode";
     else 
       p
