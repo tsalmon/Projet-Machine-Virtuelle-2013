@@ -14,7 +14,13 @@ let gH s =
   let (a,b) = Stk.pop s
   in b
 
-let binop_step b a s = match b with 
+let print_machin  = function
+  | Int(_) -> print_string("int\n")
+  | Ptr(_) -> print_string("Ptr\n")
+
+let binop_step b a s = 
+  print_string("binop_step");
+  match b with 
   | Add -> Int(gI(a) + gI(s))
   | Sub -> Int(gI(a) - gI(s))
   | Mul -> Int(gI(a) * gI(s))
@@ -37,13 +43,13 @@ let rec recup l i r =
     in recup a (i-1) (Stk.push r b) 
   else r   
 let copy_stat c p a s = {code = c; pc = p; acc = a; stack = s}
-
+  
 let rec bloc l i r=  
   if(i > 0 ) then 
     let (a,b) = Stk.pop l 
     in bloc a (i-1) ([|b|]) 
   else r   
-
+    
 let rec closure l i tab =
   if(i > 0 ) then 
     let (a,b) = Stk.pop l 
@@ -53,28 +59,27 @@ let rec closure l i tab =
 let step s =
   match s.code.(s.pc) with
     | Halt -> raise Finished 
-    | Binop(b) -> copy_stat s.code (s.pc+1) (binop_step b s.acc (gH s.stack)) s.stack
-    | Const(i) -> copy_stat s.code (s.pc+1) (Int(i)) s.stack
-    | Str(st) -> copy_stat s.code (s.pc+1) (Ptr(String st)) s.stack
-    | Push -> copy_stat s.code (s.pc+1) (s.acc) (Stk.push s.stack s.acc)
-    | Acc(i) -> copy_stat s.code (s.pc+1) (Stk.peek s.stack i) (s.stack)
-    | Print -> print_acc s.acc; copy_stat s.code (s.pc+1) s.acc s.stack
-    | Apply -> copy_stat s.code (s.pc+gI(s.acc)) (s.acc) s.stack
-    | Return(i) -> copy_stat s.code (s.pc+1) s.acc (depop s.stack i)
-    | Pop(i) -> copy_stat s.code (s.pc+1) s.acc (depop s.stack i)
-    | Makeblock(t, n) -> copy_stat s.code (s.pc+1) (Ptr(Block(t, (bloc s.stack n (Array.make (n+1) (Int(0))))))) (depop s.stack n)
-    | Getblock(n) ->  copy_stat s.code (s.pc+1) (Stk.peek s.stack n) s.stack
-    | Closure(n, o) -> 
+    | Binop(b) ->   print_string("binop\n"); copy_stat s.code (s.pc+1) (binop_step b s.acc (gH s.stack)) s.stack
+    | Const(i) ->   print_string("const\n"); copy_stat s.code (s.pc+1) (Int(i)) s.stack
+    | Str(st) ->   print_string("str\n"); copy_stat s.code (s.pc+1) (Ptr(String st)) s.stack
+    | Push ->   print_string("push\n"); copy_stat s.code (s.pc+1) (s.acc) (Stk.push s.stack s.acc)
+    | Acc(i) ->   print_string("acc\n"); copy_stat s.code (s.pc+1) (Stk.peek s.stack i) (s.stack)
+    | Print ->   print_string("print\n"); print_acc s.acc; copy_stat s.code (s.pc+1) s.acc s.stack
+    | Apply ->   print_string("apply\n"); copy_stat s.code (s.pc+gI(s.acc)) (s.acc) s.stack
+    | Return(i) ->   print_string("return\n"); copy_stat s.code (s.pc+1) s.acc (depop s.stack i)
+    | Pop(i) ->   print_string("pop\n"); copy_stat s.code (s.pc+1) s.acc (depop s.stack i)
+    | Makeblock(t, n) ->  print_string("makeblock\n");  copy_stat s.code (s.pc+1) (Ptr(Block(t, (bloc s.stack n (Array.make (n+1) (Int(0))))))) (depop s.stack n)
+    | Getblock(n) ->   print_string("getblock\n"); copy_stat s.code (s.pc+1) (Stk.peek s.stack n) s.stack
+    | Closure(n, o) ->   print_string("closure\n");
       let tab = Array.make 1 (Int (o+s.pc)) in
       let close = closure s.stack n tab in  
       copy_stat s.code (s.pc+1) (Ptr(Block(88, close))) (depop s.stack n)
-    | Branchif(l) -> 
+    | Branchif(l) ->   print_string("branchif\n");
       if(gI(s.acc) = 0) then 
 	copy_stat s.code (s.pc+l) s.acc s.stack 
       else 
 	copy_stat s.code (s.pc+1) s.acc s.stack
-    | Branch(l) -> copy_stat s.code (s.pc+l) s.acc s.stack
-      
+    | Branch(l) -> print_string("branch");copy_stat s.code (s.pc+l) s.acc s.stack
       
 let exec ?(trace=false) s =
   let rec star s =
