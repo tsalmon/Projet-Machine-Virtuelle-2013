@@ -67,13 +67,14 @@ let rec closure l i tab =
 
 let step_acc pile acc code = 
   let rec recup pill k i l = 
+    print_string(string_of_int(i) ^ " " ^ string_of_int(k)^ "\n");
     if(k < i) then 
       recup (Stk.push pill (l.(k))) (k+1) i l
     else
-      copy_stat code (gI(l.(k))) acc (Stk.push pill (Stk.peek pill (i+1)))
+      copy_stat code (gI(l.(0))) acc (Stk.push pill (Stk.peek pill (i+1)))
   in
   match acc with
-    | Ptr(Block( _, t)) -> recup pile 0 ((Array.length t)-1) t 
+    | Ptr(Block( _, t)) -> recup pile 1 ( Array.length t) t 
     | _ -> failwith "incomprehensible"
 		 
 let step s =
@@ -85,7 +86,7 @@ let step s =
     | Push -> print_string("push\n"); copy_stat s.code (s.pc+1) (s.acc) (Stk.push s.stack s.acc)
     | Acc(i) ->   print_string("acc\n"); copy_stat s.code (s.pc+1) (Stk.peek s.stack i) (s.stack)
     | Print ->   print_string("print\n"); print_acc s.acc; copy_stat s.code (s.pc+1) s.acc s.stack
-    | Apply -> 
+    | Apply -> print_string("apply\n");
       let stack = Stk.push s.stack (Int(s.pc+1)) in
       step_acc stack s.acc s.code
       (*print_string("apply\n"); copy_stat s.code (s.pc+1) (s.acc) (step_acc stack s.acc)*)
