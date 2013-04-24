@@ -67,17 +67,18 @@ let rec closure l i tab =
 
 let step_acc pile acc code = 
   let rec recup pill k i l = 
-    print_string(string_of_int(i) ^ " " ^ string_of_int(k)^ "\n");
+    (*print_string(string_of_int(gI(l.(i)))^ "\n");*)
     if(k < i) then 
       recup (Stk.push pill (l.(k))) (k+1) i l
     else
-      copy_stat code (gI(l.(0))) acc (Stk.push pill (Stk.peek pill (i+1)))
+      copy_stat code (gI(l.(0))) acc (Stk.push pill (Stk.peek pill (i)))
   in
   match acc with
     | Ptr(Block( _, t)) -> recup pile 1 ( Array.length t) t 
     | _ -> failwith "incomprehensible"
 		 
 let step s =
+  print_string("|"^ string_of_int(s.pc) ^ "|\n");
   match s.code.(s.pc) with
     | Halt -> raise Finished 
     | Binop(b) ->   print_string("binop\n"); copy_stat s.code (s.pc+1) (binop_step b s.acc (gH s.stack)) s.stack
@@ -86,14 +87,14 @@ let step s =
     | Push -> print_string("push\n"); copy_stat s.code (s.pc+1) (s.acc) (Stk.push s.stack s.acc)
     | Acc(i) ->   print_string("acc\n"); copy_stat s.code (s.pc+1) (Stk.peek s.stack i) (s.stack)
     | Print ->   print_string("print\n"); print_acc s.acc; copy_stat s.code (s.pc+1) s.acc s.stack
-    | Apply -> print_string("apply\n");
+    | Apply -> print_string("apply (" ^ string_of_int(s.pc+1)^")\n");
       let stack = Stk.push s.stack (Int(s.pc+1)) in
       step_acc stack s.acc s.code
-      (*print_string("apply\n"); copy_stat s.code (s.pc+1) (s.acc) (step_acc stack s.acc)*)
+    (*print_string("apply\n"); copy_stat s.code (s.pc+1) (s.acc) (step_acc stack s.acc)*)
     | Return(i) ->  
-      print_string("return\n"); 
+      print_string("return"^string_of_int(gI(Stk.peek s.stack (i)))^"\n"); 
       let st= copy_stat s.code (s.pc+1) s.acc (depop s.stack (i)) in
-      copy_stat st.code (gI(Stk.peek st.stack 0)) st.acc (depop st.stack (1))
+      copy_stat st.code (gI(Stk.peek st.stack 0)) st.acc (depop st.stack 1)
     | Pop(i) ->   print_string("pop\n"); copy_stat s.code (s.pc+1) s.acc (depop s.stack i)
     | Makeblock(t, n) ->  print_string("makeblock\n");  
       copy_stat 
