@@ -42,38 +42,73 @@ let rec recup l i r =
     let (a,b) = Stk.pop l 
     in recup a (i-1) (Stk.push r b) 
   else r   
+
+(* call by: step *)
 let copy_stat c p a s = {code = c; pc = p; acc = a; stack = s}
   
+(*call by: step *)
 let rec bloc l i r=  
   if(i > 0 ) then 
     let (a,b) = Stk.pop l 
     in bloc a (i-1) ([|b|]) 
   else r   
-    
+
+(* call by: step *)    
 let rec closure l i tab =
   if(i > 0 ) then 
     let (a,b) = Stk.pop l 
     in bloc a (i-1) (Array.append tab [|b|]) 
   else tab
 
+(* call by: exec*)
+(*
+  on applique pour les instructions de s 
+*)
+
+let step_acc pile acc code = 
+  let rec recup pill k i l = 
+    if(k < i) then 
+      recup (Stk.push pill (l.(k))) (k+1) i l
+    else
+      copy_stat code (gI(l.(k))) acc (Stk.push pill (Stk.peek pill (i+1)))
+  in
+  match acc with
+    | Ptr(Block( _, t)) -> recup pile 0 ((Array.length t)-1) t 
+    | _ -> failwith "incomprehensible"
+		 
 let step s =
   match s.code.(s.pc) with
     | Halt -> raise Finished 
     | Binop(b) ->   print_string("binop\n"); copy_stat s.code (s.pc+1) (binop_step b s.acc (gH s.stack)) s.stack
     | Const(i) ->   print_string("const\n"); copy_stat s.code (s.pc+1) (Int(i)) s.stack
     | Str(st) ->   print_string("str\n"); copy_stat s.code (s.pc+1) (Ptr(String st)) s.stack
-    | Push ->   print_string("push\n"); copy_stat s.code (s.pc+1) (s.acc) (Stk.push s.stack s.acc)
+    | Push -> print_string("push\n"); copy_stat s.code (s.pc+1) (s.acc) (Stk.push s.stack s.acc)
     | Acc(i) ->   print_string("acc\n"); copy_stat s.code (s.pc+1) (Stk.peek s.stack i) (s.stack)
     | Print ->   print_string("print\n"); print_acc s.acc; copy_stat s.code (s.pc+1) s.acc s.stack
-    | Apply ->   print_string("apply\n"); copy_stat s.code (s.pc+gI(s.acc)) (s.acc) s.stack
-    | Return(i) ->   print_string("return\n"); copy_stat s.code (s.pc+1) s.acc (depop s.stack i)
+    | Apply -> 
+      let stack = Stk.push s.stack (Int(s.pc+1)) in
+      step_acc stack s.acc s.code
+      (*print_string("apply\n"); copy_stat s.code (s.pc+1) (s.acc) (step_acc stack s.acc)*)
+    | Return(i) ->  
+      print_string("return\n"); 
+      let st= copy_stat s.code (s.pc+1) s.acc (depop s.stack (i)) in
+      copy_stat st.code (gI(Stk.peek st.stack 0)) st.acc (depop st.stack (1))
     | Pop(i) ->   print_string("pop\n"); copy_stat s.code (s.pc+1) s.acc (depop s.stack i)
-    | Makeblock(t, n) ->  print_string("makeblock\n");  copy_stat s.code (s.pc+1) (Ptr(Block(t, (bloc s.stack n (Array.make (n+1) (Int(0))))))) (depop s.stack n)
+    | Makeblock(t, n) ->  print_string("makeblock\n");  
+      copy_stat 
+	s.code 
+	(s.pc+1) 
+	(Ptr(Block(t, (bloc s.stack n (Array.make (n+1) (Int(0))))))) 
+	(depop s.stack n)
     | Getblock(n) ->   print_string("getblock\n"); copy_stat s.code (s.pc+1) (Stk.peek s.stack n) s.stack
     | Closure(n, o) ->   print_string("closure\n");
       let tab = Array.make 1 (Int (o+s.pc)) in
       let close = closure s.stack n tab in  
-      copy_stat s.code (s.pc+1) (Ptr(Block(88, close))) (depop s.stack n)
+      copy_stat 
+	s.code 
+	(s.pc+1) 
+	(Ptr(Block(88, close))) 
+	(depop s.stack n)
     | Branchif(l) ->   print_string("branchif\n");
       if(gI(s.acc) = 0) then 
 	copy_stat s.code (s.pc+l) s.acc s.stack 
@@ -81,13 +116,14 @@ let step s =
 	copy_stat s.code (s.pc+1) s.acc s.stack
     | Branch(l) -> print_string("branch");copy_stat s.code (s.pc+l) s.acc s.stack
       
+(* call by: ?*)
 let exec ?(trace=false) s =
   let rec star s =
     if trace then Printer.print (Printer.state s);
     try star (step s) with Finished -> ()
   in star s 
 
-
+(* call by: ?*)
 let init c = (*print_string(print_asm c 0 );*)
   {code =  c;
     pc = 0;
