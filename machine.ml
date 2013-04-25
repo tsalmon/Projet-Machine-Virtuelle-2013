@@ -19,7 +19,6 @@ let print_machin  = function
   | Ptr(_) -> print_string("Ptr\n")
 
 let binop_step b a s = 
-  print_string("binop_step");
   match b with 
   | Add -> Int(gI(a) + gI(s))
   | Sub -> Int(gI(a) - gI(s))
@@ -61,13 +60,10 @@ let rec closure l i tab =
   else tab
 
 (* call by: exec*)
-(*
-  on applique pour les instructions de s 
-*)
+(* on applique pour les instructions de s *)
 
 let step_acc pile acc code = 
   let rec recup pill k i l = 
-    (*print_string(string_of_int(gI(l.(i)))^ "\n");*)
     if(k < i) then 
       recup (Stk.push pill (l.(k))) (k+1) i l
     else
@@ -75,7 +71,7 @@ let step_acc pile acc code =
   in
   match acc with
     | Ptr(Block( _, t)) -> recup pile 1 ( Array.length t) t 
-    | _ -> failwith "incomprehensible"
+    | _ -> failwith "step_acc ne trouve pas de blocs"
 		 
 let step s =
   match s.code.(s.pc) with
@@ -123,38 +119,9 @@ let exec ?(trace=false) s =
   in star s 
 
 (* call by: ?*)
-let init c = (*print_string(print_asm c 0 );*)
+let init c = 
   {code =  c;
     pc = 0;
     acc = Int(0);
    stack = Stk.empty
-  } (*failwith "(machine.init)Students, this is your job."*)
-
-let print_binop = function
-  | Add -> "Add"
-  | Sub -> "Sub"
-  | Mul -> "Mul"
-  | Div -> "Div"
-  | Eqi -> "Eqi"
-  | Cat -> "Cat"
-    
-let rec print_asm c k = 
-  if(k < Array.length c) then
-    match c.(k) with 
-      | Halt -> "Halt\n" ^ print_asm c (k+1)
-      | Push -> "Push\n" ^ print_asm c (k+1)
-      | Print -> "Print\n" ^ print_asm c (k+1)
-      | Apply -> "Apply\n"
-      | Acc i -> "Acc " ^ soi(i) ^ "\n" ^ print_asm c (k+1)
-      | Const i -> "Const " ^ soi(i) ^ "\n" ^ print_asm c (k+1)
-      | Return i -> "Return " ^ soi(i) ^ "\n" ^ print_asm c (k+1)
-      | Pop i -> "Pop " ^ soi(i) ^ "\n" ^ print_asm c (k+1)
-      | Branchif i -> "Branchif " ^ soi(i) ^ "\n" ^ print_asm c (k+1) 
-      | Branch i -> "Branch " ^ soi(i) ^ "\n" ^print_asm c (k+1) 
-      | Getblock i -> "Getblock " ^ soi (i) ^ "\n" ^ print_asm c (k+1)
-      | Makeblock (i, j) -> "Makeblock" ^ soi(i) ^ ", " ^ soi(j) ^ "\n" ^ print_asm c (k+1)
-      | Closure (i, j) -> "Closure" ^ soi(i) ^ ", " ^ soi(j) ^ "\n" ^ print_asm c (k+1)
-      | Binop b -> "Binop" ^ print_binop b ^ "\n" ^ print_asm c (k+1)
-      | Str s -> "String" ^ s ^ print_asm c (k+1)   
-  else
-    "\n"
+  }
